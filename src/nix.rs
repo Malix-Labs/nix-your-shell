@@ -247,6 +247,71 @@ fn nix_option_arity(arg: &str) -> Option<OptionArity> {
     }
 }
 
+fn nix_shell_option_arity(arg: &str) -> Option<OptionArity> {
+    match arg {
+        // Two arguments
+        "--arg"
+        | "--argstr"
+        // `nix-store`
+        | "--option"
+        // From `nix-build` source...
+        | "--override-flake" => Some(OptionArity::Two),
+
+        // One argument
+        "--attr"
+        | "-A"
+        | "--exclude"
+        | "--keep"
+        | "-i" // Interpreter, shebang only
+        // `nix-store`
+        | "--add-root"
+        // From `nix-build` source...
+        | "--cores"
+        | "--max-silent-time"
+        | "--timeout"
+        | "--store-uri"
+        | "-I"
+        | "--include"
+        | "--eval-store"
+        | "-o"
+        | "--out-link" => Some(OptionArity::One),
+
+        // Zero arguments
+        "--pure"
+        | "--impure"
+        // `--packages` changes the meaning of positional arguments, so we effectively
+        // ignore it.
+        | "-p"
+        | "--packages"
+        // Also changes meaning of positional arguments.
+        | "-E"
+        | "--expr"
+        // `nix-store`
+        | "--dry-run"
+        | "--ignore-unknown"
+        | "--check"
+        // From `nix-build` source...
+        | "-Q"
+        | "--no-build-output"
+        | "-K"
+        | "--keep-failed"
+        | "-k"
+        | "--keep-going"
+        | "--fallback"
+        | "--readonly-mode"
+        | "--no-gc-warning"
+        | "--add-drv-link"
+        | "--indirect"
+        | "--no-out-link"
+        | "--no-link"
+        | "--drv-link"
+        | "--repair"
+        | "--run-env" => Some(OptionArity::Zero),
+
+        _ => None,
+    }
+}
+
 /// Transform arguments to a `nix` invocation to run the specified `command` with the specified
 /// `command_args`.
 ///
@@ -351,77 +416,34 @@ pub fn transform_nix_shell(
             break;
         }
 
-        match args[i].as_str() {
-            // Two arguments
-            "--arg" | "--argstr"
-                // `nix-store`
-                | "--option"
-                // From `nix-build` source...
-                | "--override-flake"
-                => {
-                if !try_consume_option_values(&args, &mut ret, &mut i, 2) {
-                    // Truncated option value(s); keep input unchanged and stop parsing.
-                    break;
+        let arg = args[i].as_str();
+
+        if matches!(arg, "--command" | "--run" | "--help" | "--version") {
+            // We already have a command to run; don't add our own `--command {command}`
+            // arguments.
+            return args;
+        }
+
+        if let Some(arity) = nix_shell_option_arity(arg) {
+            match arity {
+                OptionArity::Two => {
+                    if !try_consume_option_values(&args, &mut ret, &mut i, 2) {
+                        // Truncated option value(s); keep input unchanged and stop parsing.
+                        break;
+                    }
+                }
+                OptionArity::One => {
+                    if !try_consume_option_values(&args, &mut ret, &mut i, 1) {
+                        // Truncated option value; keep input unchanged and stop parsing.
+                        break;
+                    }
+                }
+                OptionArity::Zero => {
+                    // Nothing to skip.
                 }
             }
-
-            // One argument
-            "--attr" | "-A" | "--exclude" | "--keep"
-                | "-i" // Interpreter, shebang only
-                // `nix-store`
-                | "--add-root"
-                // From `nix-build` source...
-                | "--cores"
-                | "--max-silent-time"
-                | "--timeout"
-                | "--store-uri"
-                | "-I" | "--include"
-                | "--eval-store"
-                | "-o" | "--out-link"
-                => {
-                if !try_consume_option_values(&args, &mut ret, &mut i, 1) {
-                    // Truncated option value; keep input unchanged and stop parsing.
-                    break;
-                }
-            }
-
-            // Zero arguments
-            "--pure" | "--impure"
-                // `--packages` changes the meaning of positional arguments, so we effectively
-                // ignore it.
-                | "-p" | "--packages"
-                // Also changes meaning of positional arguments.
-                | "-E" | "--expr"
-                // `nix-store`
-                | "--dry-run" | "--ignore-unknown" | "--check"
-                // From `nix-build` source...
-                | "-Q" | "--no-build-output"
-                | "-K" | "--keep-failed"
-                | "-k" | "--keep-going"
-                | "--fallback"
-                | "--readonly-mode"
-                | "--no-gc-warning"
-                | "--add-drv-link" | "--indirect"
-                | "--no-out-link" | "--no-link"
-                | "--drv-link"
-                | "--repair"
-                | "--run-env"
-                => {
-                // Nothing to skip.
-            }
-
-            "--command" | "--run"
-                | "--help"
-                | "--version"
-                => {
-                // We already have a command to run; don't add our own `--command {command}`
-                // arguments.
-                return args;
-            }
-
-            _ => {
-                // Unknown argument, ignore.
-            }
+        } else {
+            // Unknown argument, ignore.
         }
 
         i += 1;
