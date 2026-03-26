@@ -42,273 +42,324 @@ enum OptionArity {
     Two,
 }
 
+const NIX_OPTIONS_TWO: &[&str] = &[
+    "--option",
+    "--redirect",
+    "--override-flake",
+    "--arg",
+    "--argstr",
+    "--override-input",
+];
+
+const NIX_OPTIONS_ONE: &[&str] = &[
+    "--log-format",
+    "--access-tokens",
+    "--allowed-impure-host-deps",
+    "--allowed-uris",
+    "--allowed-users",
+    "--bash-prompt",
+    "--bash-prompt-prefix",
+    "--bash-prompt-suffix",
+    "--build-hook",
+    "--build-poll-interval",
+    "--build-users-group",
+    "--builders",
+    "--commit-lockfile-summary",
+    "--connect-timeout",
+    "--cores",
+    "--diff-hook",
+    "--download-attempts",
+    "--download-speed",
+    "--experimental-features",
+    "--extra-access-tokens",
+    "--extra-allowed-impure-host-deps",
+    "--extra-allowed-uris",
+    "--extra-allowed-users",
+    "--extra-experimental-features",
+    "--extra-extra-platforms",
+    "--extra-hashed-mirrors",
+    "--extra-nix-path",
+    "--extra-platforms",
+    "--extra-plugin-files",
+    "--extra-sandbox-paths",
+    "--extra-secret-key-files",
+    "--extra-substituters",
+    "--extra-system-features",
+    "--extra-trusted-public-keys",
+    "--extra-trusted-substituters",
+    "--extra-trusted-users",
+    "--flake-registry",
+    "--gc-reserved-space",
+    "--hashed-mirrors",
+    "--http-connections",
+    "--log-lines",
+    "--max-build-log-size",
+    "--max-free",
+    "--max-jobs",
+    "--max-silent-time",
+    "--min-free",
+    "--min-free-check-interval",
+    "--nar-buffer-size",
+    "--narinfo-cache-negative-ttl",
+    "--narinfo-cache-positive-ttl",
+    "--netrc-file",
+    "--nix-path",
+    "--plugin-files",
+    "--post-build-hook",
+    "--pre-build-hook",
+    "--repeat",
+    "--sandbox-paths",
+    "--secret-key-files",
+    "--stalled-download-timeout",
+    "--store",
+    "--substituters",
+    "--system",
+    "--system-features",
+    "--tarball-ttl",
+    "--timeout",
+    "--trusted-public-keys",
+    "--trusted-substituters",
+    "--trusted-users",
+    "--user-agent-suffix",
+    // `nix develop` options
+    "-k",
+    "--keep",
+    "--phase",
+    "--profile",
+    "--unset",
+    "--eval-store",
+    "-I",
+    "--include",
+    "--inputs-from",
+    "--update-input",
+    "--expr",
+    "-f",
+    "--file",
+];
+
+const NIX_OPTIONS_ZERO: &[&str] = &[
+    "--offline",
+    "--refresh",
+    "--debug",
+    "-L",
+    "--print-build-logs",
+    "--quiet",
+    "-v",
+    "--verbose",
+    "--accept-flake-config",
+    "--no-accept-flake-config",
+    "--allow-dirty",
+    "--no-allow-dirty",
+    "--allow-import-from-derivation",
+    "--no-allow-import-from-derivation",
+    "--allow-symlinked-store",
+    "--no-allow-symlinked-store",
+    "--allow-unsafe-native-code-during-evaluation",
+    "--no-allow-unsafe-native-code-during-evaluation",
+    "--auto-optimise-store",
+    "--no-auto-optimise-store",
+    "--builders-use-substitutes",
+    "--no-builders-use-substitutes",
+    "--compress-build-log",
+    "--no-compress-build-log",
+    "--darwin-log-sandbox-violations",
+    "--no-darwin-log-sandbox-violations",
+    "--enforce-determinism",
+    "--no-enforce-determinism",
+    "--eval-cache",
+    "--no-eval-cache",
+    "--fallback",
+    "--no-fallback",
+    "--fsync-metadata",
+    "--no-fsync-metadata",
+    "--http2",
+    "--no-http2",
+    "--ignore-try",
+    "--no-ignore-try",
+    "--impersonate-linux-26",
+    "--no-impersonate-linux-26",
+    "--keep-build-log",
+    "--no-keep-build-log",
+    "--keep-derivations",
+    "--no-keep-derivations",
+    "--keep-env-derivations",
+    "--no-keep-env-derivations",
+    "--keep-failed",
+    "--no-keep-failed",
+    "--keep-going",
+    "--no-keep-going",
+    "--keep-outputs",
+    "--no-keep-outputs",
+    "--preallocate-contents",
+    "--no-preallocate-contents",
+    "--print-missing",
+    "--no-print-missing",
+    "--pure-eval",
+    "--no-pure-eval",
+    "--require-sigs",
+    "--no-require-sigs",
+    "--restrict-eval",
+    "--no-restrict-eval",
+    "--run-diff-hook",
+    "--no-run-diff-hook",
+    "--sandbox",
+    "--no-sandbox",
+    "--sandbox-fallback",
+    "--no-sandbox-fallback",
+    "--show-trace",
+    "--no-show-trace",
+    "--substitute",
+    "--no-substitute",
+    "--sync-before-registering",
+    "--no-sync-before-registering",
+    "--trace-function-calls",
+    "--no-trace-function-calls",
+    "--trace-verbose",
+    "--no-trace-verbose",
+    "--use-case-hack",
+    "--no-use-case-hack",
+    "--use-registries",
+    "--no-use-registries",
+    "--use-sqlite-wal",
+    "--no-use-sqlite-wal",
+    "--warn-dirty",
+    "--no-warn-dirty",
+    "--relaxed-sandbox",
+    // `nix develop` options
+    "--build",
+    "--check",
+    "--configure",
+    "--debugger",
+    "-i",
+    "--ignore-environment",
+    "--install",
+    "--installcheck",
+    "--unpack",
+    "--impure",
+    "--commit-lock-file",
+    "--no-registries",
+    "--no-update-lock-file",
+    "--no-write-lock-file",
+    "--recreate-lock-file",
+    "--derivation",
+];
+
+const NIX_SHELL_OPTIONS_TWO: &[&str] = &[
+    "--arg",
+    "--argstr",
+    // `nix-store`
+    "--option",
+    // From `nix-build` source...
+    "--override-flake",
+];
+
+const NIX_SHELL_OPTIONS_ONE: &[&str] = &[
+    "--attr",
+    "-A",
+    "--exclude",
+    "--keep",
+    "-i", // Interpreter, shebang only
+    // `nix-store`
+    "--add-root",
+    // From `nix-build` source...
+    "--cores",
+    "--max-silent-time",
+    "--timeout",
+    "--store-uri",
+    "-I",
+    "--include",
+    "--eval-store",
+    "-o",
+    "--out-link",
+];
+
+const NIX_SHELL_OPTIONS_ZERO: &[&str] = &[
+    "--pure",
+    "--impure",
+    // `--packages` changes the meaning of positional arguments, so we effectively
+    // ignore it.
+    "-p",
+    "--packages",
+    // Also changes meaning of positional arguments.
+    "-E",
+    "--expr",
+    // `nix-store`
+    "--dry-run",
+    "--ignore-unknown",
+    "--check",
+    // From `nix-build` source...
+    "-Q",
+    "--no-build-output",
+    "-K",
+    "--keep-failed",
+    "-k",
+    "--keep-going",
+    "--fallback",
+    "--readonly-mode",
+    "--no-gc-warning",
+    "--add-drv-link",
+    "--indirect",
+    "--no-out-link",
+    "--no-link",
+    "--drv-link",
+    "--repair",
+    "--run-env",
+];
+
+const NIX_SUBCOMMANDS: &[&str] = &[
+    "build",
+    "develop",
+    "flake",
+    "help",
+    "profile",
+    "repl",
+    "run",
+    "search",
+    "shell",
+    "bundle",
+    "copy",
+    "edit",
+    "eval",
+    "fmt",
+    "log",
+    "path-info",
+    "registry",
+    "why-depends",
+    "daemon",
+    "describe-stores",
+    "hash",
+    "key",
+    "nar",
+    "print-dev-env",
+    "realisation",
+    "show-config",
+    "show-derivation",
+    "store",
+    "doctor",
+    "upgrade-nix",
+];
+
 fn nix_option_arity(arg: &str) -> Option<OptionArity> {
-    match arg {
-        // Two arguments
-        "--option"
-        | "--redirect"
-        | "--override-flake"
-        | "--arg"
-        | "--argstr"
-        | "--override-input" => Some(OptionArity::Two),
-
-        // One argument
-        "--log-format"
-        | "--access-tokens"
-        | "--allowed-impure-host-deps"
-        | "--allowed-uris"
-        | "--allowed-users"
-        | "--bash-prompt"
-        | "--bash-prompt-prefix"
-        | "--bash-prompt-suffix"
-        | "--build-hook"
-        | "--build-poll-interval"
-        | "--build-users-group"
-        | "--builders"
-        | "--commit-lockfile-summary"
-        | "--connect-timeout"
-        | "--cores"
-        | "--diff-hook"
-        | "--download-attempts"
-        | "--download-speed"
-        | "--experimental-features"
-        | "--extra-access-tokens"
-        | "--extra-allowed-impure-host-deps"
-        | "--extra-allowed-uris"
-        | "--extra-allowed-users"
-        | "--extra-experimental-features"
-        | "--extra-extra-platforms"
-        | "--extra-hashed-mirrors"
-        | "--extra-nix-path"
-        | "--extra-platforms"
-        | "--extra-plugin-files"
-        | "--extra-sandbox-paths"
-        | "--extra-secret-key-files"
-        | "--extra-substituters"
-        | "--extra-system-features"
-        | "--extra-trusted-public-keys"
-        | "--extra-trusted-substituters"
-        | "--extra-trusted-users"
-        | "--flake-registry"
-        | "--gc-reserved-space"
-        | "--hashed-mirrors"
-        | "--http-connections"
-        | "--log-lines"
-        | "--max-build-log-size"
-        | "--max-free"
-        | "--max-jobs"
-        | "--max-silent-time"
-        | "--min-free"
-        | "--min-free-check-interval"
-        | "--nar-buffer-size"
-        | "--narinfo-cache-negative-ttl"
-        | "--narinfo-cache-positive-ttl"
-        | "--netrc-file"
-        | "--nix-path"
-        | "--plugin-files"
-        | "--post-build-hook"
-        | "--pre-build-hook"
-        | "--repeat"
-        | "--sandbox-paths"
-        | "--secret-key-files"
-        | "--stalled-download-timeout"
-        | "--store"
-        | "--substituters"
-        | "--system"
-        | "--system-features"
-        | "--tarball-ttl"
-        | "--timeout"
-        | "--trusted-public-keys"
-        | "--trusted-substituters"
-        | "--trusted-users"
-        | "--user-agent-suffix"
-        // `nix develop` options
-        | "-k"
-        | "--keep"
-        | "--phase"
-        | "--profile"
-        | "--unset"
-        | "--eval-store"
-        | "-I"
-        | "--include"
-        | "--inputs-from"
-        | "--update-input"
-        | "--expr"
-        | "-f"
-        | "--file" => Some(OptionArity::One),
-
-        // Zero arguments
-        "--offline"
-        | "--refresh"
-        | "--debug"
-        | "-L"
-        | "--print-build-logs"
-        | "--quiet"
-        | "-v"
-        | "--verbose"
-        | "--accept-flake-config"
-        | "--no-accept-flake-config"
-        | "--allow-dirty"
-        | "--no-allow-dirty"
-        | "--allow-import-from-derivation"
-        | "--no-allow-import-from-derivation"
-        | "--allow-symlinked-store"
-        | "--no-allow-symlinked-store"
-        | "--allow-unsafe-native-code-during-evaluation"
-        | "--no-allow-unsafe-native-code-during-evaluation"
-        | "--auto-optimise-store"
-        | "--no-auto-optimise-store"
-        | "--builders-use-substitutes"
-        | "--no-builders-use-substitutes"
-        | "--compress-build-log"
-        | "--no-compress-build-log"
-        | "--darwin-log-sandbox-violations"
-        | "--no-darwin-log-sandbox-violations"
-        | "--enforce-determinism"
-        | "--no-enforce-determinism"
-        | "--eval-cache"
-        | "--no-eval-cache"
-        | "--fallback"
-        | "--no-fallback"
-        | "--fsync-metadata"
-        | "--no-fsync-metadata"
-        | "--http2"
-        | "--no-http2"
-        | "--ignore-try"
-        | "--no-ignore-try"
-        | "--impersonate-linux-26"
-        | "--no-impersonate-linux-26"
-        | "--keep-build-log"
-        | "--no-keep-build-log"
-        | "--keep-derivations"
-        | "--no-keep-derivations"
-        | "--keep-env-derivations"
-        | "--no-keep-env-derivations"
-        | "--keep-failed"
-        | "--no-keep-failed"
-        | "--keep-going"
-        | "--no-keep-going"
-        | "--keep-outputs"
-        | "--no-keep-outputs"
-        | "--preallocate-contents"
-        | "--no-preallocate-contents"
-        | "--print-missing"
-        | "--no-print-missing"
-        | "--pure-eval"
-        | "--no-pure-eval"
-        | "--require-sigs"
-        | "--no-require-sigs"
-        | "--restrict-eval"
-        | "--no-restrict-eval"
-        | "--run-diff-hook"
-        | "--no-run-diff-hook"
-        | "--sandbox"
-        | "--no-sandbox"
-        | "--sandbox-fallback"
-        | "--no-sandbox-fallback"
-        | "--show-trace"
-        | "--no-show-trace"
-        | "--substitute"
-        | "--no-substitute"
-        | "--sync-before-registering"
-        | "--no-sync-before-registering"
-        | "--trace-function-calls"
-        | "--no-trace-function-calls"
-        | "--trace-verbose"
-        | "--no-trace-verbose"
-        | "--use-case-hack"
-        | "--no-use-case-hack"
-        | "--use-registries"
-        | "--no-use-registries"
-        | "--use-sqlite-wal"
-        | "--no-use-sqlite-wal"
-        | "--warn-dirty"
-        | "--no-warn-dirty"
-        | "--relaxed-sandbox"
-        // `nix develop` options
-        | "--build"
-        | "--check"
-        | "--configure"
-        | "--debugger"
-        | "-i"
-        | "--ignore-environment"
-        | "--install"
-        | "--installcheck"
-        | "--unpack"
-        | "--impure"
-        | "--commit-lock-file"
-        | "--no-registries"
-        | "--no-update-lock-file"
-        | "--no-write-lock-file"
-        | "--recreate-lock-file"
-        | "--derivation" => Some(OptionArity::Zero),
-
-        _ => None,
+    if NIX_OPTIONS_TWO.contains(&arg) {
+        Some(OptionArity::Two)
+    } else if NIX_OPTIONS_ONE.contains(&arg) {
+        Some(OptionArity::One)
+    } else if NIX_OPTIONS_ZERO.contains(&arg) {
+        Some(OptionArity::Zero)
+    } else {
+        None
     }
 }
 
 fn nix_shell_option_arity(arg: &str) -> Option<OptionArity> {
-    match arg {
-        // Two arguments
-        "--arg"
-        | "--argstr"
-        // `nix-store`
-        | "--option"
-        // From `nix-build` source...
-        | "--override-flake" => Some(OptionArity::Two),
-
-        // One argument
-        "--attr"
-        | "-A"
-        | "--exclude"
-        | "--keep"
-        | "-i" // Interpreter, shebang only
-        // `nix-store`
-        | "--add-root"
-        // From `nix-build` source...
-        | "--cores"
-        | "--max-silent-time"
-        | "--timeout"
-        | "--store-uri"
-        | "-I"
-        | "--include"
-        | "--eval-store"
-        | "-o"
-        | "--out-link" => Some(OptionArity::One),
-
-        // Zero arguments
-        "--pure"
-        | "--impure"
-        // `--packages` changes the meaning of positional arguments, so we effectively
-        // ignore it.
-        | "-p"
-        | "--packages"
-        // Also changes meaning of positional arguments.
-        | "-E"
-        | "--expr"
-        // `nix-store`
-        | "--dry-run"
-        | "--ignore-unknown"
-        | "--check"
-        // From `nix-build` source...
-        | "-Q"
-        | "--no-build-output"
-        | "-K"
-        | "--keep-failed"
-        | "-k"
-        | "--keep-going"
-        | "--fallback"
-        | "--readonly-mode"
-        | "--no-gc-warning"
-        | "--add-drv-link"
-        | "--indirect"
-        | "--no-out-link"
-        | "--no-link"
-        | "--drv-link"
-        | "--repair"
-        | "--run-env" => Some(OptionArity::Zero),
-
-        _ => None,
+    if NIX_SHELL_OPTIONS_TWO.contains(&arg) {
+        Some(OptionArity::Two)
+    } else if NIX_SHELL_OPTIONS_ONE.contains(&arg) {
+        Some(OptionArity::One)
+    } else if NIX_SHELL_OPTIONS_ZERO.contains(&arg) {
+        Some(OptionArity::Zero)
+    } else {
+        None
     }
 }
 
@@ -396,21 +447,13 @@ pub fn transform_nix(args: Vec<String>, command: &str, command_args: Vec<String>
             return consume_option_values(&args, ret, i, arity);
         }
 
-        match arg {
-            "build" | "develop" | "flake" | "help" | "profile" | "repl" | "run" | "search"
-            | "shell" | "bundle" | "copy" | "edit" | "eval" | "fmt" | "log" | "path-info"
-            | "registry" | "why-depends" | "daemon" | "describe-stores" | "hash" | "key"
-            | "nar" | "print-dev-env" | "realisation" | "show-config" | "show-derivation"
-            | "store" | "doctor" | "upgrade-nix" => {
-                // Top-level subcommand.
+        if NIX_SUBCOMMANDS.contains(&arg) {
+            // Top-level subcommand.
 
-                // Replace `subcommand` unless it already has a value.
-                subcommand.get_or_insert_with(|| args[*i].clone());
-            }
-
-            _ => {
-                // Unknown argument, ignore.
-            }
+            // Replace `subcommand` unless it already has a value.
+            subcommand.get_or_insert_with(|| args[*i].clone());
+        } else {
+            // Unknown argument, ignore.
         }
 
         ParseOutcome::Continue
