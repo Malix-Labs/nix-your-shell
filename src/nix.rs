@@ -320,6 +320,63 @@ fn is_nix_shell_command_override(arg: &str) -> bool {
     matches!(arg, "--command" | "--run" | "--help" | "--version")
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum ParseOutcome {
+    Continue,
+    Break,
+    ReturnOriginal,
+}
+
+fn consume_option_values(
+    args: &[String],
+    ret: &mut Vec<String>,
+    i: &mut usize,
+    arity: OptionArity,
+) -> ParseOutcome {
+    match arity {
+        OptionArity::Two => {
+            if !try_consume_option_values(args, ret, i, 2) {
+                // Truncated option value(s); keep input unchanged and stop parsing.
+                return ParseOutcome::Break;
+            }
+        }
+        OptionArity::One => {
+            if !try_consume_option_values(args, ret, i, 1) {
+                // Truncated option value; keep input unchanged and stop parsing.
+                return ParseOutcome::Break;
+            }
+        }
+        OptionArity::Zero => {}
+    }
+
+    ParseOutcome::Continue
+}
+
+fn walk_args<F>(args: &[String], ret: &mut Vec<String>, mut on_arg: F) -> ParseOutcome
+where
+    F: FnMut(&str, &mut usize, &mut Vec<String>) -> ParseOutcome,
+{
+    let mut i = 0;
+    while i < args.len() {
+        ret.push(args[i].clone());
+
+        if handle_end_of_options(args, ret, i) {
+            return ParseOutcome::Break;
+        }
+
+        let arg = args[i].as_str();
+        match on_arg(arg, &mut i, ret) {
+            ParseOutcome::Continue => {}
+            ParseOutcome::Break => return ParseOutcome::Break,
+            ParseOutcome::ReturnOriginal => return ParseOutcome::ReturnOriginal,
+        }
+
+        i += 1;
+    }
+
+    ParseOutcome::Continue
+}
+
 /// Transform arguments to a `nix` invocation to run the specified `command` with the specified
 /// `command_args`.
 ///
@@ -329,57 +386,38 @@ pub fn transform_nix(args: Vec<String>, command: &str, command_args: Vec<String>
 
     let mut subcommand = None;
 
-    let mut i = 0;
-    while i < args.len() {
-        ret.push(args[i].clone());
-
-        if handle_end_of_options(&args, &mut ret, i) {
-            break;
-        }
-
-        let arg = args[i].as_str();
-
+    let outcome = walk_args(&args, &mut ret, |arg, i, ret| {
         if is_nix_command_override(arg) {
             // We already have a command to run.
-            return NixArgs { args, subcommand };
+            return ParseOutcome::ReturnOriginal;
         }
 
         if let Some(arity) = nix_option_arity(arg) {
-            match arity {
-                OptionArity::Two => {
-                    if !try_consume_option_values(&args, &mut ret, &mut i, 2) {
-                        // Truncated option value(s); keep input unchanged and stop parsing.
-                        break;
-                    }
-                }
-                OptionArity::One => {
-                    if !try_consume_option_values(&args, &mut ret, &mut i, 1) {
-                        // Truncated option value; keep input unchanged and stop parsing.
-                        break;
-                    }
-                }
-                OptionArity::Zero => {}
+            return consume_option_values(&args, ret, i, arity);
+        }
+
+        match arg {
+            "build" | "develop" | "flake" | "help" | "profile" | "repl" | "run" | "search"
+            | "shell" | "bundle" | "copy" | "edit" | "eval" | "fmt" | "log" | "path-info"
+            | "registry" | "why-depends" | "daemon" | "describe-stores" | "hash" | "key"
+            | "nar" | "print-dev-env" | "realisation" | "show-config" | "show-derivation"
+            | "store" | "doctor" | "upgrade-nix" => {
+                // Top-level subcommand.
+
+                // Replace `subcommand` unless it already has a value.
+                subcommand.get_or_insert_with(|| args[*i].clone());
             }
-        } else {
-            match arg {
-                "build" | "develop" | "flake" | "help" | "profile" | "repl" | "run" | "search"
-                | "shell" | "bundle" | "copy" | "edit" | "eval" | "fmt" | "log" | "path-info"
-                | "registry" | "why-depends" | "daemon" | "describe-stores" | "hash" | "key"
-                | "nar" | "print-dev-env" | "realisation" | "show-config" | "show-derivation"
-                | "store" | "doctor" | "upgrade-nix" => {
-                    // Top-level subcommand.
 
-                    // Replace `subcommand` unless it already has a value.
-                    subcommand.get_or_insert_with(|| args[i].clone());
-                }
-
-                _ => {
-                    // Unknown argument, ignore.
-                }
+            _ => {
+                // Unknown argument, ignore.
             }
         }
 
-        i += 1;
+        ParseOutcome::Continue
+    });
+
+    if matches!(outcome, ParseOutcome::ReturnOriginal) {
+        return NixArgs { args, subcommand };
     }
 
     // We want to add our `--command` flag right at the end, because `--command` makes *all the
@@ -416,45 +454,23 @@ pub fn transform_nix_shell(
         std::iter::once(command).chain(command_args.iter().map(|arg| arg.as_str())),
     ));
 
-    let mut i = 0;
-    while i < args.len() {
-        ret.push(args[i].clone());
-
-        if handle_end_of_options(&args, &mut ret, i) {
-            break;
-        }
-
-        let arg = args[i].as_str();
-
+    let outcome = walk_args(&args, &mut ret, |arg, i, ret| {
         if is_nix_shell_command_override(arg) {
             // We already have a command to run; don't add our own `--command {command}`
             // arguments.
-            return args;
+            return ParseOutcome::ReturnOriginal;
         }
 
         if let Some(arity) = nix_shell_option_arity(arg) {
-            match arity {
-                OptionArity::Two => {
-                    if !try_consume_option_values(&args, &mut ret, &mut i, 2) {
-                        // Truncated option value(s); keep input unchanged and stop parsing.
-                        break;
-                    }
-                }
-                OptionArity::One => {
-                    if !try_consume_option_values(&args, &mut ret, &mut i, 1) {
-                        // Truncated option value; keep input unchanged and stop parsing.
-                        break;
-                    }
-                }
-                OptionArity::Zero => {
-                    // Nothing to skip.
-                }
-            }
-        } else {
-            // Unknown argument, ignore.
+            return consume_option_values(&args, ret, i, arity);
         }
 
-        i += 1;
+        // Unknown argument, ignore.
+        ParseOutcome::Continue
+    });
+
+    if matches!(outcome, ParseOutcome::ReturnOriginal) {
+        return args;
     }
 
     ret
