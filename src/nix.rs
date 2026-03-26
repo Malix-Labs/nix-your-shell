@@ -312,6 +312,14 @@ fn nix_shell_option_arity(arg: &str) -> Option<OptionArity> {
     }
 }
 
+fn is_nix_command_override(arg: &str) -> bool {
+    matches!(arg, "--help" | "--version" | "-c" | "--command")
+}
+
+fn is_nix_shell_command_override(arg: &str) -> bool {
+    matches!(arg, "--command" | "--run" | "--help" | "--version")
+}
+
 /// Transform arguments to a `nix` invocation to run the specified `command` with the specified
 /// `command_args`.
 ///
@@ -331,7 +339,7 @@ pub fn transform_nix(args: Vec<String>, command: &str, command_args: Vec<String>
 
         let arg = args[i].as_str();
 
-        if matches!(arg, "--help" | "--version" | "-c" | "--command") {
+        if is_nix_command_override(arg) {
             // We already have a command to run.
             return NixArgs { args, subcommand };
         }
@@ -418,7 +426,7 @@ pub fn transform_nix_shell(
 
         let arg = args[i].as_str();
 
-        if matches!(arg, "--command" | "--run" | "--help" | "--version") {
+        if is_nix_shell_command_override(arg) {
             // We already have a command to run; don't add our own `--command {command}`
             // arguments.
             return args;
